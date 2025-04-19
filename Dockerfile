@@ -1,4 +1,4 @@
-ARG PLAUSIBLE_VERSION="v2.1.5"
+ARG PLAUSIBLE_VERSION="v3.0.1"
 
 FROM ghcr.io/plausible/community-edition:$PLAUSIBLE_VERSION
 
