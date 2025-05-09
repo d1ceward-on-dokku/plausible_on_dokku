@@ -6,105 +6,76 @@
 
 # Run Plausible on Dokku
 
-## Perquisites
+## Overview
 
-### What is Plausible?
+This guide explains how to deploy [Plausible](https://plausible.io/), a lightweight and open-source website analytics tool, on a [Dokku](https://dokku.com/) host. Dokku is a lightweight PaaS that simplifies deploying and managing applications using Docker.
 
-Plausible is a lightweight and open-source website analytics tool. No cookies and fully compliant with GDPR,
-CCPA and PECR.
+## Prerequisites
 
-### What is Dokku?
+Before proceeding, ensure you have the following:
 
-[Dokku](http://dokku.viewdocs.io/dokku/) is a lightweight implementation of a Platform as a Service (PaaS) that is powered by Docker. It can be thought of as a mini-Heroku.
+- A working [Dokku host](https://dokku.com/docs/getting-started/installation/).
+- The [PostgreSQL plugin](https://github.com/dokku/dokku-postgres) for database support.
+- The [Clickhouse plugin](https://github.com/dokku/dokku-clickhouse) for analytics storage.
+- (Optional) The [Let's Encrypt plugin](https://github.com/dokku/dokku-letsencrypt) for SSL certificates.
 
-### Requirements
+## Setup Instructions
 
-* A working [Dokku host](http://dokku.viewdocs.io/dokku/getting-started/installation/)
-* [PostgreSQL](https://github.com/dokku/dokku-postgres) plugin for Dokku
-* [Clickhouse](https://github.com/dokku/dokku-clickhouse) plugin for Dokku
-* [Letsencrypt](https://github.com/dokku/dokku-letsencrypt) plugin for SSL (optionnal)
+### 1. Create the App
 
-# Setup
+Log into your Dokku host and create the `plausible` app:
 
-**Note:** Throughout this guide, we will use the domain `plausible.example.com` for demonstration purposes. Make sure to replace it with your actual domain name.
-
-## App and plugins
-
-### Create the app
-
-Log into your Dokku host and create the Minio app:
 ```bash
 dokku apps:create plausible
 ```
 
-### Install, create and link PostgreSQL and Clickhouse plugins
+### 2. Configure the Databases
+
+Install, create, and link the PostgreSQL and Clickhouse plugins to the app:
 
 ```bash
-# Install Dokku plugins
+# Install plugins
 dokku plugin:install https://github.com/dokku/dokku-postgres.git postgres
 dokku plugin:install https://github.com/dokku/dokku-clickhouse.git clickhouse
-```
 
-```bash
-# Create running plugins
+# Create instances
 dokku postgres:create plausible
-dokku clickhouse:create plausible -i clickhouse/clickhouse-server
-```
+dokku clickhouse:create plausible
 
-```bash
-# Link plugins to the main app
+# Link plugins to the app
 dokku postgres:link plausible plausible
 dokku clickhouse:link plausible plausible
 ```
 
-## Configuration
+### 3. Configure Environment Variables
 
-### Setting up secret key
-
-Configures the secret used for sessions in the dashboard.
+Set up the required environment variables for Plausible:
 
 ```bash
+# Secret key for sessions
 dokku config:set plausible SECRET_KEY_BASE=$(openssl rand -base64 48 | tr -d '\n')
-```
 
-### Setting up TOTP vault key
-
-Configures the secret used for encrypting TOTP secrets at rest using AES256-GCM.
-
-```bash
+# TOTP vault key for encrypting secrets
 dokku config:set plausible TOTP_VAULT_KEY=$(openssl rand -base64 32 | tr -d '\n')
-```
 
-### Setting up BASE_URL
-
-Configures the base URL to use in link generation.
-
-```bash
+# Base URL for the app
 dokku config:set plausible BASE_URL=https://plausible.example.com
-```
 
-### Setting up SMTP information
-
-```bash
+# SMTP configuration for email
 dokku config:set plausible MAILER_EMAIL=admin@example.com \
                            SMTP_HOST_ADDR=mail.example.com \
                            SMTP_HOST_PORT=465 \
                            SMTP_USER_NAME=admin@example.com \
                            SMTP_USER_PWD=example1234 \
                            SMTP_HOST_SSL_ENABLED=true
-```
 
-### Disable registration (optional)
-
-Restricts registration of new users. Possible values are true (full restriction), false (no restriction), and invite_only (only the invited users can register).
-
-```bash
+# (Optional) Disable user registration
 dokku config:set plausible DISABLE_REGISTRATION=true
 ```
 
-### Persistent storage
+### 4. Configure Persistent Storage
 
-To ensure that data persists between restarts, we create a folder on the host machine, grant write permissions to the user defined in the Dockerfile, and instruct Dokku to mount it to the app container. Follow these steps:
+To persist data between restarts, create a folder on the host machine and mount it to the app container:
 
 ```bash
 dokku storage:ensure-directory plausible --chown false
@@ -112,82 +83,90 @@ chown 999:65533 /var/lib/dokku/data/storage/plausible
 dokku storage:mount plausible /var/lib/dokku/data/storage/plausible:/var/lib/plausible
 ```
 
-## Domain
+### 5. Configure the Domain and Ports
 
-To enable routing for the Plausible app, we need to configure the domain. Execute the following command:
+Set the domain for your app to enable routing:
 
 ```bash
 dokku domains:set plausible plausible.example.com
 ```
 
-## Push Plausible to Dokku using dokku git:sync
-
-Begin the cloning and building of this repo
+Map the internal port `8000` to the external port `80`:
 
 ```bash
-# Via SSH
+dokku proxy:ports-set plausible http:80:8000
+```
+
+### 6. Deploy the App
+
+You can deploy the app to your Dokku server using one of the following methods:
+
+#### Option 1: Deploy Using `dokku git:sync`
+
+If your repository is hosted on a remote Git server with an HTTPS URL, you can deploy the app directly to your Dokku server using `dokku git:sync`. This method also triggers a build process automatically. Run the following command:
+
+```bash
 dokku git:sync --build plausible https://github.com/d1ceward-on-dokku/plausible_on_dokku.git
 ```
 
-## SSL certificate
+#### Option 2: Clone the Repository and Push Manually
 
-Lastly, let's obtain an SSL certificate from [Let's Encrypt](https://letsencrypt.org/).
+If you prefer to work with the repository locally, you can clone it to your machine and push it to your Dokku server manually:
 
-```bash
-# Install letsencrypt plugin
-dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+1. Clone the repository:
 
-# Set certificate contact email
-dokku letsencrypt:set plausible email you@example.com
+    ```bash
+    # Via SSH
+    git clone git@github.com:d1ceward-on-dokku/plausible_on_dokku.git
 
-# Generate certificate
-dokku letsencrypt:enable plausible
-```
+    # Via HTTPS
+    git clone https://github.com/d1ceward-on-dokku/plausible_on_dokku.git
+    ```
 
-## Wrapping up
+2. Add your Dokku server as a Git remote:
 
-Congratulations! Your Plausible instance is now up and running, and you can access it at [https://plausible.example.com](https://plausible.example.com).
+    ```bash
+    git remote add dokku dokku@example.com:plausible
+    ```
 
-### Possible issue with proxy ports mapping
+3. Push the app to your Dokku server:
 
-If the Plausible instance is not available at the address https://plausible.example.com check the return of this command:
+    ```bash
+    git push dokku master
+    ```
 
-```bash
-dokku ports:list plausible
-```
+Choose the method that best suits your workflow.
 
-```bash
-### Valid return
------> Port mappings for plausible
-    -----> scheme  host port  container port
-    http           80         8000
+### 7. Enable SSL (Optional)
 
-### Invalid return
------> Port mappings for plausible
-    -----> scheme  host port  container port
-    http           8000       8000
-```
+Secure your app with an SSL certificate from Let's Encrypt:
 
-If the return is not as expected, execute this command:
+1. Add the HTTPS port:
 
-```bash
-dokku proxy:ports-set plausible http:80:5000
+    ```bash
+    dokku ports:add plausible https:443:8000
+    ```
 
-# dokku v 0.31+
-dokku ports:add plausible http:80:5000
+2. Install the Let's Encrypt plugin:
 
-# if you also setup SSL:
-dokku ports:set plausible http:80:5000 https:443:5000
-```
+    ```bash
+    dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+    ```
 
-If the command's return was valid and Plausible is still not available, please create an issue in the issue tracker.
+3. Set the contact email for Let's Encrypt:
 
-## Bonus : Rename script file
+    ```bash
+    dokku letsencrypt:set plausible email you@example.com
+    ```
 
-By default, Plausible will use a file called `/js/plausible.js` which is blocked by most adblockers. To overcome this, you can add an Nginx configuration file:  `vi /home/dokku/plausible/nginx.conf.d/rewrite.conf`:
+4. Enable Let's Encrypt for the app:
 
-```nginx
-rewrite ^/js/pls.js$ /js/plausible.js last;
-```
+    ```bash
+    dokku letsencrypt:enable plausible
+    ```
 
-Rename `pls.js` to whatever fits your need, and use this file name from now on.
+## Wrapping Up
+
+Congratulations! Your Plausible instance is now up and running. You can access it at [https://plausible.example.com](https://plausible.example.com).
+
+Happy analyzing!
