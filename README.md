@@ -120,34 +120,13 @@ To enable routing for the Plausible app, we need to configure the domain. Execut
 dokku domains:set plausible plausible.example.com
 ```
 
-## Push Plausible to Dokku
+## Push Plausible to Dokku using dokku git:sync
 
-### Grabbing the repository
-
-Begin by cloning this repository onto your local machine.
+Begin the cloning and building of this repo
 
 ```bash
 # Via SSH
-git clone git@github.com:d1ceward-on-dokku/plausible_on_dokku.git
-
-# Via HTTPS
-git clone https://github.com/d1ceward-on-dokku/plausible_on_dokku.git
-```
-
-### Set up git remote
-
-Now, set up your Dokku server as a remote repository.
-
-```bash
-git remote add dokku dokku@example.com:plausible
-```
-
-### Push Plausible
-
-Now, you can push the Plausible app to Dokku. Ensure you have completed this step before moving on to the [next section](#ssl-certificate).
-
-```bash
-git push dokku master
+dokku git:sync --build plausible https://github.com/d1ceward-on-dokku/plausible_on_dokku.git
 ```
 
 ## SSL certificate
@@ -192,7 +171,10 @@ dokku ports:list plausible
 If the return is not as expected, execute this command:
 
 ```bash
-dokku ports:set plausible http:80:8000
+dokku proxy:ports-set plausible http:80:5000
+
+# dokku v 0.31+
+dokku ports:add plausible http:80:5000
 
 # if you also setup SSL:
 dokku ports:set plausible http:80:5000 https:443:5000
