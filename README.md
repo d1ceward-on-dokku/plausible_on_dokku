@@ -1,8 +1,8 @@
 ![](.github/images/repo_header.png)
 
-[![Plausible](https://img.shields.io/badge/Plausible-2.0.0-blue.svg)](https://github.com/plausible/analytics/releases/tag/v2.0.0)
+[![Plausible](https://img.shields.io/badge/Plausible-3.0.1-blue.svg)](https://github.com/plausible/analytics/releases/tag/v3.0.1)
 [![Dokku](https://img.shields.io/badge/Dokku-Repo-blue.svg)](https://github.com/dokku/dokku)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/d1ceward/plausible_on_dokku/graphs/commit-activity)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/d1ceward-on-dokku/plausible_on_dokku/graphs/commit-activity)
 
 # Run Plausible on Dokku
 
@@ -61,11 +61,23 @@ dokku clickhouse:link plausible plausible
 
 ### Setting up secret key
 
+Configures the secret used for sessions in the dashboard.
+
 ```bash
-dokku config:set plausible SECRET_KEY_BASE=$(openssl rand -base64 64 | tr -d '\n')
+dokku config:set plausible SECRET_KEY_BASE=$(openssl rand -base64 48 | tr -d '\n')
+```
+
+### Setting up TOTP vault key
+
+Configures the secret used for encrypting TOTP secrets at rest using AES256-GCM.
+
+```bash
+dokku config:set plausible TOTP_VAULT_KEY=$(openssl rand -base64 32 | tr -d '\n')
 ```
 
 ### Setting up BASE_URL
+
+Configures the base URL to use in link generation.
 
 ```bash
 dokku config:set plausible BASE_URL=https://plausible.example.com
@@ -84,8 +96,20 @@ dokku config:set plausible MAILER_EMAIL=admin@example.com \
 
 ### Disable registration (optional)
 
+Restricts registration of new users. Possible values are true (full restriction), false (no restriction), and invite_only (only the invited users can register).
+
 ```bash
 dokku config:set plausible DISABLE_REGISTRATION=true
+```
+
+### Persistent storage
+
+To ensure that data persists between restarts, we create a folder on the host machine, grant write permissions to the user defined in the Dockerfile, and instruct Dokku to mount it to the app container. Follow these steps:
+
+```bash
+dokku storage:ensure-directory plausible --chown false
+chown 999:65533 /var/lib/dokku/data/storage/plausible
+dokku storage:mount plausible /var/lib/dokku/data/storage/plausible:/var/lib/plausible
 ```
 
 ## Domain
@@ -102,7 +126,7 @@ Begin the cloning and building of this repo
 
 ```bash
 # Via SSH
-dokku git:sync --build plausible https://github.com/d1ceward/plausible_on_dokku.git
+dokku git:sync --build plausible https://github.com/d1ceward-on-dokku/plausible_on_dokku.git
 ```
 
 ## SSL certificate
@@ -129,19 +153,19 @@ Congratulations! Your Plausible instance is now up and running, and you can acce
 If the Plausible instance is not available at the address https://plausible.example.com check the return of this command:
 
 ```bash
-dokku proxy:ports plausible
+dokku ports:list plausible
 ```
 
 ```bash
 ### Valid return
 -----> Port mappings for plausible
     -----> scheme  host port  container port
-    http           80         5000
+    http           80         8000
 
 ### Invalid return
 -----> Port mappings for plausible
     -----> scheme  host port  container port
-    http           5000       5000
+    http           8000       8000
 ```
 
 If the return is not as expected, execute this command:
@@ -153,7 +177,7 @@ dokku proxy:ports-set plausible http:80:5000
 dokku ports:add plausible http:80:5000
 
 # if you also setup SSL:
-dokku proxy:ports-set plausible https:443:5000
+dokku ports:set plausible http:80:5000 https:443:5000
 ```
 
 If the command's return was valid and Plausible is still not available, please create an issue in the issue tracker.
