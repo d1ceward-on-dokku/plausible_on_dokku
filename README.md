@@ -94,7 +94,7 @@ dokku domains:set plausible plausible.example.com
 Map the internal port `8000` to the external port `80`:
 
 ```bash
-dokku proxy:ports-set plausible http:80:8000
+dokku ports:set plausible http:80:8000
 ```
 
 ### 6. Deploy the App
