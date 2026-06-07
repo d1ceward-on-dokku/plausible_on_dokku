@@ -1,6 +1,6 @@
 ![](.github/images/repo_header.png)
 
-[![Plausible](https://img.shields.io/badge/Plausible-3.2.0-blue.svg)](https://github.com/plausible/analytics/releases/tag/v3.2.0)
+[![Plausible](https://img.shields.io/badge/Plausible-3.2.1-blue.svg)](https://github.com/plausible/analytics/releases/tag/v3.2.1)
 [![Dokku](https://img.shields.io/badge/Dokku-Repo-blue.svg)](https://github.com/dokku/dokku)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/d1ceward-on-dokku/plausible_on_dokku/graphs/commit-activity)
 
