@@ -1,6 +1,6 @@
 ![](.github/images/repo_header.png)
 
-[![Plausible](https://img.shields.io/badge/Plausible-3.2.1-blue.svg)](https://github.com/plausible/analytics/releases/tag/v3.2.1)
+[![Plausible](https://img.shields.io/badge/Plausible-3.2.2-blue.svg)](https://github.com/plausible/analytics/releases/tag/v3.2.2)
 [![Dokku](https://img.shields.io/badge/Dokku-Repo-blue.svg)](https://github.com/dokku/dokku)
 
 # Run Plausible on Dokku
